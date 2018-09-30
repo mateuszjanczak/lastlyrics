@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>LastLyrics</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans">
+    <style>     
+        body, html {
+            cursor: default;
+            color: white;
+            background: black;
+            font-family: 'Open Sans', sans-serif;
+            height: 100%;
+            display: grid;
+            margin: 0;
+            padding: 0; 
+        }
+
+        .container {
+            margin: 25px auto;
+        }
+
+        .hook {
+            background: gray;
+            margin-bottom: 20px;
+            padding: 25px;
+            border-radius: 5px;
+            text-shadow: 0px 0px 5px black;
+        }
+        
+        .hook > div:first-child {
+            margin-left: 0;
+        }
+
+        .hook > div {
+            float: left;
+            margin-left: 20px;
+        }
+
+        .row::after {
+            content: "";
+            clear: both;
+            display: table;
+        }
+        
+        .hide {
+            display: none;
+        }
+
+        #avatar img {
+            border: 1px solid black;
+        }
+
+        #user, #track {
+            font-size: 18px;
+        }
+
+        #count {
+            color: lightgray;
+        }
+
+        #status {
+            font-size: 12px;
+        }
+
+        #lyrics {
+            white-space: pre-line;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="hook">
+            <img src="loading.svg">
+        </div>
+        <div id="profile" class="hide hook row">
+            <div id="avatar"></div>
+            <div>
+                <div>
+                    <span id="user"></span>
+                    <span id="count"></span>
+                </div>
+                <div id="status"></div>
+                <div id="track"></div>
+            </div>
+        </div>
+        <div id="lyrics" class="hide hook"></div>
+    </div>
+</body>
+</html>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script>
+    function clear(){
+        $("#profile").addClass("hide");
+        $("#lyrics").addClass("hide");
+        $("#loading").removeClass("hide");
+        $("#avatar").html('');
+        $("#user").html('');
+        $("#count").html('');
+        $("#status").html('loading');
+        $("#track").html('');
+        $("#lyrics").html('');
+    }
+
+    function resetSettings(){
+        localStorage['user'] = 'valejzy';
+        loadLast(localStorage['user']);
+    }
+
+    function checkUpdate(){
+        user = localStorage['user'];
+        url = "api.php?user=" + user + "&readonly=1";
+        $.getJSON(url, function(data){
+            if(data.title && title != data.title)
+            {
+                //$("#loading").html('loading new track...');
+                clear();
+                loadLast(user);
+            }
+        });
+    };
+
+    function loadLast(user){
+        url = "api.php?user=" + user;
+        $.getJSON(url, function(data){
+            if(!data.user)
+            {
+                resetSettings();
+                alert("user not exists");
+            }
+            $("#loading").addClass("hide");
+            $("#profile").removeClass("hide");
+            $("#user").html(data.user);
+            $("#user").off("click").click(function(){
+                cache = localStorage['user'];
+                if(localStorage['user'] = prompt("enter nick!"))
+                {
+                    clear();
+                    loadLast(localStorage['user']);
+                }
+                else
+                {
+                    localStorage['user'] = cache;
+                }
+            });
+            $("#count").html(data.count);
+            $("<a>").attr({ href: "https://last.fm/user/" + data.user, id: "link" }).appendTo("#avatar");
+            if(data.avatar)
+            {
+                $("<img>").attr('src', data.avatar).appendTo("#link");
+            }
+            else
+            {
+                $("<img>").attr('src', "avatar.png").appendTo("#link");
+            }
+            if(data.scrobblingnow)
+            {
+                title = data.title;
+                $("#status").html("scrobbling now ");
+                $("<img>").attr('src', 'icon.gif').appendTo("#status");
+                $("#track").html(data.artist + " - " + data.title);
+                if(data.lyrics)
+                {
+                    $("#lyrics").html(data.lyrics);
+                }
+                else
+                {
+                    $("#lyrics").html('no lyrics in database, sorry');
+                }
+                $("#lyrics").removeClass("hide");
+            }
+            else
+            {
+                $("#status").html("offline");
+            }
+        }).fail(function(){
+            resetSettings();
+        });
+    }
+
+    if(localStorage['user'])
+    {
+        title = 'none';
+        loadLast(localStorage['user']);
+        setInterval(checkUpdate, 10000);
+    }
+    else
+    {
+        resetSettings();
+    }
+    
+</script>
